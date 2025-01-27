@@ -114,4 +114,4 @@ File `docker-compose.yml` berisi konfigurasi untuk kedua backend dan database My
 
 ---
 
-**Terimakasih ??**
+**Terimakasih**
