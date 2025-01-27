@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # ExpressJS application
+  node_app:
+    build: .
+    container_name: node_app
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${PORT}
+      DB_DIALECT: ${DB_DIALECT}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SECRET: ${SECRET}
+      JWT_KEY_SECRET: ${JWT_KEY_SECRET}
+      EXCHANGE_API_TOKEN: ${EXCHANGE_API_TOKEN}
+    depends_on:
+      - node_db
+    networks:
+      - app_network
+
+  # MySQL database
+  node_db:
+    image: mysql:8.0
+    container_name: node_db
+    restart: always
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: ""
+      MYSQL_DATABASE: ${DB_DATABASE}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  mysql_data:

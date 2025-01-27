@@ -1,0 +1,244 @@
+pipeline { 
+    agent any
+
+    tools {nodejs "nodejs"} 
+
+    environment {
+        REPO_NAME = "relokasi-be"
+        VAULT_ADDR = 'https://vault.smartcitynusantara.id'
+        VAULT_CREDENTIALS_ID = 'jenkins-vault' // Jenkins credential ID for Vault authentication
+        NODE_ENV = "development"
+        PORT = ''
+        DB_DIALECT = ''
+        DB_HOST = ''
+        DB_PORT = ''
+        DB_DATABASE = ''
+        DB_USERNAME = ''
+        DB_PASSWORD = ''
+        SECRET = ''
+        MINIO_URL = ''
+        MINIO_ACCESSKEY = ''
+        MINIO_SECRETKEY = ''
+        MINIO_BUCKET = ''
+        NEXTAUTH_URL = ''
+        NEXTAUTH_SECRET = ''
+        JWT_SECRET = ''
+        SEND_EMAIL_USER_ACCOUNT = ''
+        SEND_EMAIL_PASS_ACCOUNT = ''
+    }
+
+    stages {
+        stage('Cleanup Workspace'){
+            steps {
+                script {
+                    cleanWs()
+                    cancelPreviousBuilds()
+                }
+            }
+        }
+        stage('SCM') {
+            steps {
+                checkout scm
+                script {
+                    sh "docker rmi svcsmartcity/${env.REPO_NAME} -f"
+                }
+            }
+        }
+
+        stage('Fetch Secrets from Vault') {
+            steps {
+                withVault([vaultSecrets: [
+                    [path: 'relokasi/relokasi-be', secretValues: [
+                        [envVar: 'PORT', vaultKey: 'PORT'],
+                        [envVar: 'DB_DIALECT', vaultKey: 'DB_DIALECT'],
+                        [envVar: 'DB_HOST', vaultKey: 'DB_HOST'],
+                        [envVar: 'DB_PORT', vaultKey: 'DB_PORT'],
+                        [envVar: 'DB_DATABASE', vaultKey: 'DB_DATABASE'],
+                        [envVar: 'DB_USERNAME', vaultKey: 'DB_USERNAME'],
+                        [envVar: 'DB_PASSWORD', vaultKey: 'DB_PASSWORD'],
+                        [envVar: 'SECRET', vaultKey: 'SECRET'],
+                        [envVar: 'MINIO_URL', vaultKey: 'MINIO_URL'],
+                        [envVar: 'MINIO_ACCESSKEY', vaultKey: 'MINIO_ACCESSKEY'],
+                        [envVar: 'MINIO_SECRETKEY', vaultKey: 'MINIO_SECRETKEY'],
+                        [envVar: 'MINIO_BUCKET', vaultKey: 'MINIO_BUCKET'],
+                        [envVar: 'JWT_SECRET', vaultKey: 'JWT_SECRET'],
+                        [envVar: 'SEND_EMAIL_USER_ACCOUNT', vaultKey: 'SEND_EMAIL_USER_ACCOUNT'],
+                        [envVar: 'SEND_EMAIL_PASS_ACCOUNT', vaultKey: 'SEND_EMAIL_PASS_ACCOUNT'],
+                    ]]
+                ]]) {
+                    script {
+                        // Create a map to store environment variables
+                        def envVars = [
+                            'NODE_ENV': env.NODE_ENV,
+                            'PORT': env.PORT,
+                            'DB_DIALECT': env.DB_DIALECT,
+                            'DB_HOST': env.DB_HOST,
+                            'DB_PORT': env.DB_PORT,
+                            'DB_DATABASE': env.DB_DATABASE,
+                            'DB_USERNAME': env.DB_USERNAME,
+                            'DB_PASSWORD': env.DB_PASSWORD,
+                            'SECRET': env.SECRET,
+                            'MINIO_URL': env.MINIO_URL,
+                            'MINIO_ACCESSKEY': env.MINIO_ACCESSKEY,
+                            'MINIO_SECRETKEY': env.MINIO_SECRETKEY,
+                            'MINIO_BUCKET': env.MINIO_BUCKET,
+                            'JWT_SECRET': env.JWT_SECRET,
+                            'SEND_EMAIL_USER_ACCOUNT': env.SEND_EMAIL_USER_ACCOUNT,
+                            'SEND_EMAIL_PASS_ACCOUNT': env.SEND_EMAIL_PASS_ACCOUNT,
+                        ]
+
+                        // Write environment variables to a file
+                        writeFile file: '.env', text: envVars.collect { key, value -> "${key}=${value}" }.join('\n')
+                    }
+                }
+            }
+        }
+
+        stage('GitLeaks Scan'){
+            agent {
+                docker {
+                    image 'zricethezav/gitleaks:latest'
+                    args '--entrypoint='
+                }
+            }
+            steps {
+                script {
+                    try {
+                        sh "gitleaks detect --source . --report-path analytics-${REPO_NAME}-repo.json -v"
+                    } catch(e) {
+                        currentBuild.result = 'FAILURE'
+                    }
+                }
+            }
+        }
+
+        stage('Unit Testing'){
+            steps {
+                script {
+                    sh "yarn install --frozen-lockfile"
+                    sh "yarn test --passWithNoTests"
+                    sh "yarn coverage --passWithNoTests"
+                }
+            }
+        }
+
+        stage('Clean environment test'){
+            steps {
+                script {
+                    sh "rm -rf .env"
+                }
+            }
+        }
+
+        stage('SonarQube Analysis'){
+            steps {
+                script {
+                    def scannerHome = tool 'sonarqube';
+                    withSonarQubeEnv() {
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
+                }
+            }
+        }
+
+        stage('Build Image Docker') {
+            steps {
+                withVault([vaultSecrets: [
+                    [path: 'relokasi/relokasi-be', secretValues: [
+                        [envVar: 'PORT', vaultKey: 'PORT'],
+                        [envVar: 'DB_DIALECT', vaultKey: 'DB_DIALECT'],
+                        [envVar: 'DB_HOST', vaultKey: 'DB_HOST'],
+                        [envVar: 'DB_PORT', vaultKey: 'DB_PORT'],
+                        [envVar: 'DB_DATABASE', vaultKey: 'DB_DATABASE'],
+                        [envVar: 'DB_USERNAME', vaultKey: 'DB_USERNAME'],
+                        [envVar: 'DB_PASSWORD', vaultKey: 'DB_PASSWORD'],
+                        [envVar: 'SECRET', vaultKey: 'SECRET'],
+                        [envVar: 'MINIO_URL', vaultKey: 'MINIO_URL'],
+                        [envVar: 'MINIO_ACCESSKEY', vaultKey: 'MINIO_ACCESSKEY'],
+                        [envVar: 'MINIO_SECRETKEY', vaultKey: 'MINIO_SECRETKEY'],
+                        [envVar: 'MINIO_BUCKET', vaultKey: 'MINIO_BUCKET']
+                    ]]
+                ]]) {
+                    script {
+                        def buildArgs = """\
+                        --build-arg NODE_ENV=${env.NODE_ENV} \
+                        --build-arg PORT=${env.PORT} \
+                        --build-arg DB_DIALECT=${env.DB_DIALECT} \
+                        --build-arg DB_HOST=${env.DB_HOST} \
+                        --build-arg DB_PORT=${env.DB_PORT} \
+                        --build-arg DB_USERNAME=${env.DB_USERNAME} \
+                        --build-arg DB_PASSWORD=${env.DB_PASSWORD} \
+                        --build-arg DB_DATABASE=${env.DB_DATABASE} \
+                        --build-arg SECRET=${env.SECRET} \
+                        --build-arg MINIO_URL=${env.MINIO_URL} \
+                        --build-arg MINIO_ACCESSKEY=${env.MINIO_ACCESSKEY} \
+                        --build-arg MINIO_SECRETKEY=${env.MINIO_SECRETKEY} \
+                        --build-arg MINIO_BUCKET=${env.MINIO_BUCKET} \
+                        --no-cache \
+                        -f ./deployment/Dockerfile ."""
+                        
+                        echo 'Bulding docker images'
+                        ImageBuild = docker.build("svcsmartcity/${REPO_NAME}", buildArgs)
+                    }
+                }
+            }
+        }
+
+        stage("Push to Registry") {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.docker.com', 'docker-hub-credential') {            
+                        ImageBuild.push("${env.BRANCH_NAME}")        
+                        ImageBuild.push("${env.BRANCH_NAME}.${env.BUILD_NUMBER}")         
+                    } 
+                }
+            }
+        }
+
+        stage('Grype scan') {
+            steps {
+                grypeScan scanDest: "svcsmartcity/${env.REPO_NAME}:${env.BRANCH_NAME}.${env.BUILD_NUMBER}", repName: "${env.BRANCH_NAME}.${env.BUILD_NUMBER}.txt", autoInstall:true
+            }
+        }
+
+        stage('Update Deployment') {
+            steps {
+                withCredentials([string(credentialsId: 'jenkins-api-token', variable: 'JENKINS_TOKEN')]) {
+                    sh """
+                      curl -X POST -u "admin:${JENKINS_TOKEN}" \
+                      "https://deploy.smartcitynusantara.id/job/relokasi/job/relokasi-gitops/job/${env.BRANCH_NAME}/buildWithParameters?IMAGE_TAG=${env.BUILD_NUMBER}&REPO_NAME=${REPO_NAME}&BRANCH_NAME=${env.BRANCH_NAME}"
+                    """
+                }
+            }
+        }
+
+        stage("Clean Artifacts") {
+            steps {
+                sh "docker rmi svcsmartcity/${env.REPO_NAME}:${env.BRANCH_NAME}.${env.BUILD_NUMBER} -f"
+            }
+        }
+    }
+}
+
+def cancelPreviousBuilds() {
+    def jobName = env.JOB_NAME
+    def buildNumber = env.BUILD_NUMBER.toInteger()
+
+    /* Get job name */
+    def currentJob = Jenkins.instance.getItemByFullName(jobName)
+
+    /* Iterating over the builds for specific job */
+    for (def build : currentJob.builds) {
+        def listener = build.getListener()
+        def exec = build.getExecutor()
+        /* If there is a build that is currently running and it's not current build */
+        if (build.isBuilding() && build.number.toInteger() < buildNumber && exec != null) {
+            /* Then stop it */
+            exec.interrupt(
+                    Result.ABORTED,
+                    new CauseOfInterruption.UserInterruption("Aborted by #${currentBuild.number}")
+                )
+            println("Aborted previously running build #${build.number}")
+        }
+    }
+}

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kode OTP</title>
+    <style>
+      body,
+      p {
+        margin: 0;
+        padding: 0;
+      }
+
+      /* Add your styles here */
+      .email-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px;
+        font-family: Arial, sans-serif;
+        background-color: #d0d5dd;
+      }
+
+      .header {
+        text-align: center;
+        background-color: #ffffff;
+        color: #000;
+        padding: 10px;
+        border-top-right-radius: 4px;
+        border-top-left-radius: 4px;
+      }
+
+      .header img {
+        margin-top: 30px;
+      }
+
+      .wrapper-content {
+        padding: 40px;
+        background-color: #ffffff;
+      }
+
+      .content {
+        padding: 16px 0;
+        border-top: 1px solid #d0d5dd;
+        border-bottom: 1px solid #d0d5dd;
+      }
+
+      .content h2 {
+        text-align: center;
+      }
+
+      .content .password-link {
+        border: 1px solid #eeeeee;
+        color: #fec001;
+        padding: 16px;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 40px;
+      }
+
+      .footer {
+        text-align: center;
+        padding: 24px 10px;
+        background-color: #d7ab6a;
+        color: #ffffff;
+        border-bottom-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+      }
+
+      .terms {
+        text-align: justify;
+        color: grey;
+        font-size: 15px;
+      }
+
+      .terms-title {
+        font-size: 15px;
+        font-weight: bold;
+      }
+
+      .wrapper-terms {
+        padding: 20px;
+        border-top: 1px solid #d0d5dd;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <img
+          src="https://res.cloudinary.com/dzdpgve6l/image/upload/v1722837191/ikn/vaicrbxjcngylowt4nbk.png"
+          alt="logo-ikn"
+          height="60"
+        />
+      </div>
+      <div class="wrapper-content">
+        <div class="content">
+          <p>
+            Anda telah melakukan permintaan kode OTP. Berikut adalah
+            <strong>kode OTP untuk masuk ke akun Anda:</strong>
+          </p>
+          <br />
+          <br />
+          <div style="text-align: center">
+            <a class="password-link"><strong>{{val}}</strong> </a>
+          </div>
+          <br />
+          <br />
+          <p>
+            Kode OTP di atas akan valid selama 5 menit terhitung dari Anda
+            mendapatkan email ini. Mohon jangan memberikan kode OTP ini kepada
+            siapa pun.
+          </p>
+          <br />
+          <br />
+          <p>
+            Jikan Anda tidak melakukan permintaan atur ulang kata sandi, silakan
+            abaikan email ini.
+          </p>
+        </div>
+      </div>
+      <div class="footer">
+        <p><strong>© Ibu Kota Nusantara</strong></p>
+      </div>
+    </div>
+  </body>
+</html>
