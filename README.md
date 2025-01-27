@@ -65,20 +65,20 @@ Perintah ini akan:
 
 ```
 jds_backend_test/
-+-- be-node/          # Backend Node.js
-�   +-- docker-compose.yml
-�   +-- Dockerfile
-�   +-- .env.example
-�   +-- src/
-�   +-- ...
-+-- be-golang/        # Backend Golang
-�   +-- docker-compose.yml
-�   +-- Dockerfile
-�   +-- .env.example
-�   +-- main.go
-�   +-- ...
-+-- jds-backend-test.yaml
-+-- README.md
+├── be-node/          # Backend Node.js
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── .env.example
+│   ├── src/
+│   └── ...
+├── be-golang/        # Backend Golang
+│   ├── docker-compose.yml
+│   ├── Dockerfile
+│   ├── .env.example
+│   ├── main.go
+│   └── ...
+├── jds-backend-test.yaml
+└── README.md
 ```
 
 ## Docker Compose Configuration
